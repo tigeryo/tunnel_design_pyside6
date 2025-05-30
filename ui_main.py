@@ -246,6 +246,7 @@ class UiMain(object):
         self.page_view_layout.addWidget(self.browser)
 
     def _page_rule(self):
+        print('test')
         pass
 
     def _fonts(self, mode):
