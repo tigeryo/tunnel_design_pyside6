@@ -1,0 +1,10 @@
+default: blue
+I级: red
+II级: yellow
+III级: blue
+IV级: green
+V级: black
+'0': red
+'1': yellow
+'2': blue
+'3': green
