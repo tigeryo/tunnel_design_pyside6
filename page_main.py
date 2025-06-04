@@ -19,6 +19,7 @@ from utils.parse_mile import mile_str2num, mile_num2str
 
 
 from page_design import PageDesign
+from page_operation import PageOperation
 
 
 class UiPageMain:
@@ -77,8 +78,10 @@ class UiPageMain:
         self.central_layout.addWidget(self.stack_pages)
 
         self.page_design = PageDesign()
+        self.page_operation = PageOperation()
 
         self.stack_pages.addWidget(self.page_design)
+        self.stack_pages.addWidget(self.page_operation)
 
         # 默认显示页
         self.stack_pages.setCurrentIndex(0)
@@ -101,6 +104,13 @@ class PageMain(QMainWindow, UiPageMain):
         super().__init__(parent)
 
         self._setup_ui(self)
+
+        # signals
+        # -> switch pages
+        self.left_sidebar.itemClicked.connect(self.switch_page)
+
+    def switch_page(self):
+        self.stack_pages.setCurrentIndex(self.left_sidebar.currentRow())
 
 
 
