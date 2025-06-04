@@ -22,6 +22,7 @@ class UiPageDesign:
     def _setup_ui(self, form):
         self.page = QWidget(form)
         self.page_layout = QVBoxLayout(self.page)
+        self.page_layout.setContentsMargins(0, 0, 0, 0)
 
         # define components in this page
         self.label_mile = QLabel("设计桩号:")
@@ -107,6 +108,7 @@ class PageDesign(QWidget, UiPageDesign):
         super().__init__(parent)
         # read config
         self.config_combobox = self.load_config_combobox(get_resource_path('config_combobox.yaml'))
+        self.config_color = self.load_config_color(get_resource_path('config_color.yaml'))
 
         # initialize
         self._setup_ui(self)
@@ -172,6 +174,12 @@ class PageDesign(QWidget, UiPageDesign):
             config = yaml.safe_load(f)
 
         return config['design_combobox']
+
+    def load_config_color(self, config_path):
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+
+        return config
 
     def generate_combobox_options(self):
         config = []
@@ -269,4 +277,4 @@ class PageDesign(QWidget, UiPageDesign):
                             color=color
                         )
                     ]
-            return data
+        return data

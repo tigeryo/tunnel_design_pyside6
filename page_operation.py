@@ -22,6 +22,7 @@ class UiPageOperation:
     def _setup_ui(self, form):
         self.page = QWidget(form)
         self.page_layout = QVBoxLayout(self.page)
+        self.page_layout.setContentsMargins(0, 0, 0, 0)
 
         # define components in this page
         self.label_mile = QLabel("运营桩号:")
@@ -107,6 +108,7 @@ class PageOperation(QWidget, UiPageOperation):
         super().__init__(parent)
         # read config
         self.config_combobox = self.load_config_combobox(get_resource_path('config_combobox.yaml'))
+        self.config_color = self.load_config_color(get_resource_path('config_color.yaml'))
 
         # initialize
         self._setup_ui(self)
@@ -157,21 +159,32 @@ class PageOperation(QWidget, UiPageOperation):
                 pass
 
     def update_save_miles(self, name):
-        try:
-            if name == 'entrance':
+        if name == 'entrance':
+            try:
                 self.k_miles[1], self.k_miles[0] = mile_str2num(self.lineedit_mile1.text())
-            elif name == 'exit':
+            except:
+                self.k_miles[1], self.k_miles[0] = None, 'K'
+
+        elif name == 'exit':
+            try:
                 self.k_miles[2], self.k_miles[0] = mile_str2num(self.lineedit_mile2.text())
-            else:
-                pass
-        except Exception as e:
-            print(e)
+            except:
+                self.k_miles[2], self.k_miles[0] = None, 'K'
+
+        else:
+            pass
 
     def load_config_combobox(self, config_path):
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
 
         return config['operation_combobox']
+
+    def load_config_color(self, config_path):
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+
+        return config
 
     def generate_combobox_options(self):
         config = []
@@ -232,3 +245,49 @@ class PageOperation(QWidget, UiPageOperation):
 
         for row in sorted(rows, reverse=True):
             self.delete_single_row(row)
+
+    def get_table_data(self):
+        data = {}
+        for row in range(self.table.rowCount()):
+            mile1_str = None if self.table.item(row, 1).text() == '' else self.table.item(row, 1).text()
+            mile2_str = None if self.table.item(row, 2).text() == '' else self.table.item(row, 2).text()
+            mile1_rel_num = None if self.table.item(row, 3).text() == '' else int(self.table.item(row, 3).text())
+            mile2_rel_num = None if self.table.item(row, 4).text() == '' else int(self.table.item(row, 4).text())
+            info = None if self.table.cellWidget(row, 5).currentText() == '' else self.table.cellWidget(row, 5).currentText()
+
+            if ((mile1_rel_num is not None) or (mile2_rel_num is not None)) and (info is not None):
+                info_split = info.split('：')
+                if len(info_split) == 1:
+                    color = self.config_color['default']
+                elif len(info_split) == 2:
+                    color = self.config_color[info_split[1]]
+                else:
+                    print('?')
+                    continue
+
+                mile1_rel_num = mile1_rel_num if mile1_rel_num is not None else mile2_rel_num
+                mile2_rel_num = mile2_rel_num if mile2_rel_num is not None else mile1_rel_num
+
+                if info_split[0] in data.keys():
+                    data[info_split[0]].append(
+                        dict(
+                            miles_rel=[mile1_rel_num, mile2_rel_num],
+                            color=color
+                        )
+                    )
+                else:
+                    data[info_split[0]] = [
+                        dict(
+                            miles_rel=[mile1_rel_num, mile2_rel_num],
+                            color=color
+                        )
+                    ]
+        return data
+
+    @property
+    def mile1_str(self):
+        return None if self.k_miles[1] is None else self.lineedit_mile1.text()
+
+    @property
+    def mile2_str(self):
+        return None if self.k_miles[2] is None else self.lineedit_mile2.text()

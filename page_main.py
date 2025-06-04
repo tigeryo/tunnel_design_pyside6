@@ -119,8 +119,14 @@ class PageMain(QMainWindow, UiPageMain):
         self.stack_pages.setCurrentIndex(self.left_sidebar.currentRow())
 
     def view(self):
-        data1 = self.page_design.get_table_data()
-        print(data1)
+        self.page_view.update_view(
+            self.page_design.get_table_data(),
+            self.page_operation.get_table_data(),
+            self.page_design.config_combobox,
+            self.page_operation.config_combobox,
+            self.page_operation.mile1_str,
+            self.page_operation.mile2_str
+        )
 
 
 if __name__ == "__main__":
