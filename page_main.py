@@ -20,6 +20,7 @@ from utils.parse_mile import mile_str2num, mile_num2str
 
 from page_design import PageDesign
 from page_operation import PageOperation
+from page_view import PageView
 
 
 class UiPageMain:
@@ -79,12 +80,14 @@ class UiPageMain:
 
         self.page_design = PageDesign()
         self.page_operation = PageOperation()
+        self.page_view = PageView()
 
         self.stack_pages.addWidget(self.page_design)
         self.stack_pages.addWidget(self.page_operation)
+        self.stack_pages.addWidget(self.page_view)
 
         # 默认显示页
-        self.stack_pages.setCurrentIndex(0)
+        self.stack_pages.setCurrentIndex(2)
 
     def fonts(self, mode):
         font = QFont()
@@ -109,9 +112,15 @@ class PageMain(QMainWindow, UiPageMain):
         # -> switch pages
         self.left_sidebar.itemClicked.connect(self.switch_page)
 
+        # -> view
+        self.page_view.pushbutton_update.clicked.connect(self.view)
+
     def switch_page(self):
         self.stack_pages.setCurrentIndex(self.left_sidebar.currentRow())
 
+    def view(self):
+        data1 = self.page_design.get_table_data()
+        print(data1)
 
 
 if __name__ == "__main__":

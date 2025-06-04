@@ -37,7 +37,6 @@ class UiPageView:
         self.page_layout.addLayout(self.toolbar_layout)
         self.page_layout.addWidget(self.browser)
 
-
 class PageView(QWidget, UiPageView):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -49,3 +48,13 @@ class PageView(QWidget, UiPageView):
         layout = QVBoxLayout(self)
         layout.addWidget(self.page)
         layout.setContentsMargins(0, 0, 0, 0)
+
+        # signals
+        # -> update view
+        self.pushbutton_update.clicked.connect(self.update_view)
+
+    def update_view(self):
+        pass
+
+    def get_data(self):
+        pass
