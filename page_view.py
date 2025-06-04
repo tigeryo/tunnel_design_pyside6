@@ -20,7 +20,7 @@ from utils.parse_mile import mile_str2num, mile_num2str
 
 
 class UiPageView:
-    def _setup_ui(self, form):
+    def _setup_ui(self):
         self.page = QWidget()
         self.page_layout = QVBoxLayout(self.page)
         self.page_layout.setContentsMargins(0, 0, 0, 0)
@@ -43,7 +43,7 @@ class PageView(QWidget, UiPageView):
         super().__init__(parent)
 
         # initialize
-        self._setup_ui(self)
+        self._setup_ui()
 
         # set the layout of the entire page
         layout = QVBoxLayout(self)

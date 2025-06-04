@@ -21,6 +21,7 @@ from utils.parse_mile import mile_str2num, mile_num2str
 from page_design import PageDesign
 from page_operation import PageOperation
 from page_view import PageView
+from page_rule import PageRule
 
 
 class UiPageMain:
@@ -74,6 +75,10 @@ class UiPageMain:
                                             self.left_sidebar)
         self.sidebar_view.setSizeHint(QSize(200, 50))
 
+        self.sidebar_rule = QListWidgetItem(QIcon(get_resource_path('icons/sidebar_view.png')), "规则链",
+                                            self.left_sidebar)
+        self.sidebar_rule.setSizeHint(QSize(200, 50))
+
     def _stack_page(self):
         self.stack_pages = QStackedWidget()
         self.central_layout.addWidget(self.stack_pages)
@@ -81,10 +86,12 @@ class UiPageMain:
         self.page_design = PageDesign()
         self.page_operation = PageOperation()
         self.page_view = PageView()
+        self.page_rule = PageRule()
 
         self.stack_pages.addWidget(self.page_design)
         self.stack_pages.addWidget(self.page_operation)
         self.stack_pages.addWidget(self.page_view)
+        self.stack_pages.addWidget(self.page_rule)
 
         # 默认显示页
         self.stack_pages.setCurrentIndex(2)

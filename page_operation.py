@@ -19,8 +19,8 @@ from utils.parse_mile import mile_str2num
 
 
 class UiPageOperation:
-    def _setup_ui(self, form):
-        self.page = QWidget(form)
+    def _setup_ui(self):
+        self.page = QWidget()
         self.page_layout = QVBoxLayout(self.page)
         self.page_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -111,7 +111,7 @@ class PageOperation(QWidget, UiPageOperation):
         self.config_color = self.load_config_color(get_resource_path('config_color.yaml'))
 
         # initialize
-        self._setup_ui(self)
+        self._setup_ui()
         self.init_table(0)
 
         # set the layout of the entire page
