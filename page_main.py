@@ -9,8 +9,9 @@ from PySide6.QtWidgets import (QApplication, QWidget, QMainWindow,
         QLineEdit, QLabel, QSpinBox, QPushButton, QTextEdit, QListWidget, QListWidgetItem, QCompleter,
         QStackedWidget, QMenuBar, QStatusBar, QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
         QSpacerItem, QCheckBox, QAbstractItemView, QGraphicsProxyWidget, QGraphicsScene, QGraphicsView)
-from PySide6.QtCore import QUrl, QPropertyAnimation, QEasingCurve, QSize, Qt, QPointF
+from PySide6.QtCore import QUrl, QPropertyAnimation, QEasingCurve, QSize, Qt, QPointF, QTimer
 from PySide6.QtGui import QIcon, Qt, QFont, QBrush, QColor, QPen, QPainter
+from PySide6.QtTest import QTest
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 
@@ -109,18 +110,28 @@ class UiPageMain:
         return font
 
 
+
 class PageMain(QMainWindow, UiPageMain):
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self._setup_ui(self)
-
         # signals
         # -> switch pages
         self.left_sidebar.itemClicked.connect(self.switch_page)
 
         # -> view
         self.page_view.pushbutton_update.clicked.connect(self.view)
+
+        # end init app
+        self.end_init_app()
+
+    def end_init_app(self):
+        QTimer.singleShot(0, self.log_final_size)
+        QTest.mouseClick(self.page_view.pushbutton_update, Qt.LeftButton)
+
+    def log_final_size(self):
+        self.page_rule.update_scene_size(self.stack_pages.size())
 
     def switch_page(self):
         self.stack_pages.setCurrentIndex(self.left_sidebar.currentRow())
@@ -134,6 +145,9 @@ class PageMain(QMainWindow, UiPageMain):
             self.page_operation.mile1_str,
             self.page_operation.mile2_str
         )
+
+    def resizeEvent(self, event):
+        self.page_rule.update_scene_size(self.stack_pages.size())
 
 
 if __name__ == "__main__":
