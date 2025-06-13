@@ -1,22 +1,31 @@
 import os
 import sys
 
+import PySide6.QtGui
 import numpy as np
 import yaml
 
 from PySide6.QtWidgets import (QApplication, QWidget, QMainWindow, QSizePolicy,
-        QFormLayout, QBoxLayout, QVBoxLayout, QHBoxLayout, QGridLayout,
-        QLineEdit, QLabel, QSpinBox, QPushButton, QTextEdit, QListWidget, QListWidgetItem, QCompleter,
-        QStackedWidget, QMenuBar, QStatusBar, QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
-        QSpacerItem, QCheckBox, QAbstractItemView, QGraphicsProxyWidget, QGraphicsScene, QGraphicsView,
-        QGraphicsItem, QGraphicsLineItem)
+                               QFormLayout, QBoxLayout, QVBoxLayout, QHBoxLayout, QGridLayout,
+                               QLineEdit, QLabel, QSpinBox, QPushButton, QTextEdit, QListWidget, QListWidgetItem,
+                               QCompleter,
+                               QStackedWidget, QMenuBar, QStatusBar, QTableWidget, QTableWidgetItem, QHeaderView,
+                               QComboBox,
+                               QSpacerItem, QCheckBox, QAbstractItemView, QGraphicsProxyWidget, QGraphicsScene,
+                               QGraphicsView, QMenu,
+                               QGraphicsItem, QGraphicsLineItem, QGraphicsPolygonItem)
 from PySide6.QtCore import QUrl, QPropertyAnimation, QEasingCurve, QSize, Qt, QPointF, QRectF, QLineF
-from PySide6.QtGui import QIcon, Qt, QFont, QBrush, QColor, QPen, QPainter, QPainterPath
+from PySide6.QtGui import QIcon, Qt, QFont, QBrush, QColor, QPen, QPainter, QPainterPath, QPolygonF, QAction
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from utils.get_path import get_resource_path
 from utils.parse_mile import mile_str2num, mile_num2str
 
+from rule_nodes.connection_point import ConnectionPoint
+from rule_nodes.connection_line import ConnectionLine
+from rule_nodes.node_global_range import NodeGlobalRange
+from rule_nodes.node_local_range import NodeLocalRange
+from rule_nodes.node_root import NodeRoot
 
 class UiPageRule:
     def _setup_ui(self):
@@ -31,16 +40,20 @@ class UiPageRule:
         self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         # self.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-        self.pushbutton_add = QPushButton('添加节点')
-        self.pushbutton_connect = QPushButton('连接模式')
+        self.label_nodes = QLabel('节点')
+        self.pushbutton_add_node0 = QPushButton('规则链起点')
+        self.pushbutton_add_node1 = QPushButton('全局范围')
+        self.pushbutton_add_node2 = QPushButton('局部范围')
 
         # tool
         self.tool_layout = QHBoxLayout()
-        self.tool_layout.addWidget(self.pushbutton_add)
-        self.tool_layout.addWidget(self.pushbutton_connect)
+        self.tool_layout.addWidget(self.pushbutton_add_node0)
+        self.tool_layout.addWidget(self.pushbutton_add_node1)
+        self.tool_layout.addWidget(self.pushbutton_add_node2)
         self.tool_layout.addStretch()
 
         #  compile components
+        self.page_layout.addWidget(self.label_nodes)
         self.page_layout.addLayout(self.tool_layout)
         self.page_layout.addWidget(self.view)
 
@@ -61,6 +74,7 @@ class DiagramScene(QGraphicsScene):
         self.start_point_item: ConnectionPoint | None = None
 
         self.connections = []
+        self.root_nodes = []
 
     def draw_grid(self):
         for line in self.grid_lines:
@@ -81,8 +95,12 @@ class DiagramScene(QGraphicsScene):
         self.draw_grid()
 
     def mousePressEvent(self, event):
-        select_item = self.itemAt(event.scenePos(), self.views()[0].transform())
-        if isinstance(select_item, ConnectionPoint):
+        try:
+            select_item = self.itemAt(event.scenePos(), self.views()[0].transform())
+        except:
+            select_item = None
+
+        if select_item is not None and isinstance(select_item, ConnectionPoint):
             if select_item.point_type == 'output':
                 self.flag_connect = True
                 # self.tmp_connection_line = ConnectionLine(select_item.parentItem())
@@ -106,7 +124,7 @@ class DiagramScene(QGraphicsScene):
         if self.flag_connect:
             self.flag_connect = False
             if isinstance(select_item, ConnectionPoint):
-                if select_item.point_type == 'input':
+                if select_item.point_type == 'input' and len(select_item.connection_lines) == 0:
                     self.tmp_connection_line.update_points(self.start_point_item, select_item)
                     self.start_point_item.update_connection_line(self.tmp_connection_line)
                     select_item.update_connection_line(self.tmp_connection_line)
@@ -116,167 +134,59 @@ class DiagramScene(QGraphicsScene):
                 self.clear_tmp_line()
         super().mouseReleaseEvent(event)
 
+    def contextMenuEvent(self, event):
+        try:
+            select_item = self.itemAt(event.scenePos(), self.views()[0].transform())
+        except:
+            select_item = None
+
+        # define menu
+        menu = QMenu()
+
+        # -> delete connection line
+        action_delete_line = QAction('删除连接线', self)
+        action_delete_line.triggered.connect(lambda: self.delete_connection_line(select_item))
+        menu.addAction(action_delete_line)
+
+        # -> delete node
+        action_delete_node = QAction('删除节点', self)
+        action_delete_node.triggered.connect(lambda: self.delete_node(select_item))
+        menu.addAction(action_delete_node)
+        # finish
+        menu.exec(event.screenPos())
+
     def clear_tmp_line(self):
         self.removeItem(self.tmp_connection_line)
         self.tmp_connection_line = None
 
-
-class NodeCombobox(QGraphicsProxyWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.container = QWidget()
-        self.container_layout = QVBoxLayout(self.container)
-
-        # define components
-        self.title = QLabel('设计信息')
-        self.combobox = QComboBox()
-        self.combobox.addItems(['1', '222222222'])
-
-        self.container_layout.addWidget(self.title, alignment=Qt.AlignHCenter)
-        self.container_layout.addWidget(self.combobox)
-
-        # set proxy widget
-        self.setWidget(self.container)
-        self.setFlag(QGraphicsProxyWidget.ItemIsMovable, True)
-        self.setFlag(QGraphicsProxyWidget.ItemIsSelectable, True)
-
-        # add connection node, must after setting proxy widget
-        self.input_point = ConnectionPoint(self, 'input')
-        self.output_point = ConnectionPoint(self, 'output')
-        self.update_connection_points()
-
-        # params for dragging and moving
-        self.dragging = False
-        self.drag_start_position = QPointF()
-        self.original_position = QPointF()
-
-        # above the background
-        self.setZValue(1)
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.dragging = True
-            self.drag_start_position = event.scenePos()
-            self.original_position = self.pos()
-            event.accept()
+    def delete_connection_line(self, connection_line):
+        if isinstance(connection_line, ConnectionLine):
+            for point in connection_line.points:
+                point.update_connection_line(connection_line, 'remove')
+            self.removeItem(connection_line)
         else:
-            super().mousePressEvent(event)
+            pass
 
-    def mouseMoveEvent(self, event):
-        if self.dragging:
-            delta = event.scenePos() - self.drag_start_position
-            self.setPos(self.original_position + delta)
-            event.accept()
+    def delete_node(self, node):
+        if isinstance(node, NodeGlobalRange) or isinstance(node, NodeLocalRange):
+            input_connection_lines = node.input_point.connection_lines.copy()
+            for input_connection_line in input_connection_lines:
+                self.delete_connection_line(input_connection_line)
+            output_connection_lines = node.output_point.connection_lines.copy()
+            for output_connection_line in output_connection_lines:
+                self.delete_connection_line(output_connection_line)
+            self.removeItem(node)
+        elif isinstance(node, NodeRoot):
+            # remove connection line
+            output_connection_lines = node.output_point.connection_lines.copy()
+            for output_connection_line in output_connection_lines:
+                self.delete_connection_line(output_connection_line)
+
+            # remove node
+            self.removeItem(node)
         else:
-            super().mouseMoveEvent(event)
+            pass
 
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton and self.dragging:
-            self.dragging = False
-            event.accept()
-        else:
-            super().mouseReleaseEvent(event)
-
-    def itemChange(self, change, value):
-        if change == QGraphicsItem.ItemPositionHasChanged:
-            self.update_connection_line(self.input_point)
-            self.update_connection_line(self.output_point)
-        return super().itemChange(change, value)
-
-    def update_connection_line(self, connection_point):
-        if connection_point.connection_line is not None:
-            connection_point.connection_line.update_line()
-
-    def set_style(self):
-        self.combobox.setStyleSheet("""
-            QComboBox {
-                border: 1px solid gray;
-                border-radius: 3px;
-                padding: 1px 18px 1px 3px;
-                min-width: 6em;
-                background-color: white;
-            }
-        """)
-
-    def update_connection_points(self):
-        self.input_point.setPos(0, self.boundingRect().height() / 2)
-        self.output_point.setPos(self.boundingRect().width(), self.boundingRect().height() / 2)
-
-
-class ConnectionPoint(QGraphicsItem):
-    def __init__(self, parent=None, point_type="input"):
-        super().__init__(parent)
-        # point params
-        self.radius = 6
-
-        # point type: input or output
-        self.point_type = point_type
-
-        # allow hover event
-        self.is_hovered = False
-        self.setAcceptHoverEvents(True)
-
-        #
-        self.connection_line: ConnectionLine | None = None
-
-
-    def boundingRect(self):
-        """control the boundary of the graphics item """
-        return QRectF(-self.radius, -self.radius,
-                      self.radius * 2, self.radius * 2)
-
-    def shape(self):
-        """control the shape of the item: circle"""
-        path = QPainterPath()
-        path.addEllipse(self.boundingRect())
-        return path
-
-    def paint(self, painter, option, widget=None):
-        if self.isSelected():
-            color = QColor(255, 0, 0)
-        elif self.is_hovered:
-            color = QColor(224, 224, 224)
-        else:
-            color = QColor(153, 0, 255)
-
-        # 绘制连接点
-        painter.setPen(QPen(color, 1.5))
-        painter.setBrush(QBrush(color.lighter(150)))
-        painter.drawEllipse(self.boundingRect())
-
-    def hoverEnterEvent(self, event):
-        self.is_hovered = True
-        self.update()
-        super().hoverEnterEvent(event)
-
-    def hoverLeaveEvent(self, event):
-        self.is_hovered = False
-        self.update()
-        super().hoverLeaveEvent(event)
-
-    def mousePressEvent(self, event):
-        event.accept()
-        # super().mousePressEvent(event)
-
-    def update_connection_line(self, line_item):
-        self.connection_line = line_item
-
-class ConnectionLine(QGraphicsLineItem):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.points = None
-
-        self.setPen(QPen(QColor(255, 50, 50), 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
-        self.setZValue(0)
-
-    def update_line(self, start_pos=None, end_pos=None):
-        if self.points is None:
-            self.setLine(QLineF(start_pos, end_pos))
-        else:
-            self.setLine(QLineF(self.points[0].scenePos(), self.points[1].scenePos()))
-
-    def update_points(self, *point_items):
-        self.points = point_items
 
 class PageRule(QWidget, UiPageRule):
     def __init__(self, parent=None):
@@ -285,19 +195,31 @@ class PageRule(QWidget, UiPageRule):
         # initialize
         self._setup_ui()
         self.setMouseTracking(True)
+        self.nodes_table = {
+            0: 'NodeRoot',
+            1: 'NodeGlobalRange',
+            2: 'NodeLocalRange',
+        }
 
         # set the layout of the entire page
         layout = QVBoxLayout(self)
         layout.addWidget(self.page)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.pushbutton_add.clicked.connect(self.add_node)
+        self.pushbutton_add_node0.clicked.connect(lambda: self.add_node(0))
+        self.pushbutton_add_node1.clicked.connect(lambda: self.add_node(1))
+        self.pushbutton_add_node2.clicked.connect(lambda: self.add_node(2))
 
-    def add_node(self):
-        node = NodeCombobox()
+
+    def add_node(self, node_index):
+        node = eval(self.nodes_table[node_index])()
         self.scene.addItem(node)
         self.scene.update_size(self.size())
         node.setPos(self.width() // 2, self.height() // 2)
+
+        # save
+        if node_index == 0:
+            self.scene.root_nodes.append(node)
 
     def update_scene_size(self, size: QSize):
         self.scene.update_size(size)

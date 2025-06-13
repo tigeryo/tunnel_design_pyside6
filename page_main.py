@@ -114,7 +114,7 @@ class UiPageMain:
 class PageMain(QMainWindow, UiPageMain):
     def __init__(self, parent=None):
         super().__init__(parent)
-
+        #
         self._setup_ui(self)
         # signals
         # -> switch pages
