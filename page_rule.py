@@ -26,6 +26,7 @@ from rule_nodes.connection_line import ConnectionLine
 from rule_nodes.node_global_range import NodeGlobalRange
 from rule_nodes.node_local_range import NodeLocalRange
 from rule_nodes.node_root import NodeRoot
+from rule_nodes.node_equipment import NodeEquipment
 
 class UiPageRule:
     def _setup_ui(self):
@@ -44,12 +45,14 @@ class UiPageRule:
         self.pushbutton_add_node0 = QPushButton('规则链起点')
         self.pushbutton_add_node1 = QPushButton('全局范围')
         self.pushbutton_add_node2 = QPushButton('局部范围')
+        self.pushbutton_add_node3 = QPushButton('监测设备')
 
         # tool
         self.tool_layout = QHBoxLayout()
         self.tool_layout.addWidget(self.pushbutton_add_node0)
         self.tool_layout.addWidget(self.pushbutton_add_node1)
         self.tool_layout.addWidget(self.pushbutton_add_node2)
+        self.tool_layout.addWidget(self.pushbutton_add_node3)
         self.tool_layout.addStretch()
 
         #  compile components
@@ -182,7 +185,18 @@ class DiagramScene(QGraphicsScene):
             for output_connection_line in output_connection_lines:
                 self.delete_connection_line(output_connection_line)
 
+            # remove from self.root_nodes
+            for i in range(len(self.root_nodes)):
+                if id(self.root_nodes[i]) == id(node):
+                    del self.root_nodes[i]
+                    break
+
             # remove node
+            self.removeItem(node)
+        elif isinstance(node, NodeEquipment):
+            input_connection_lines = node.input_point.connection_lines.copy()
+            for input_connection_line in input_connection_lines:
+                self.delete_connection_line(input_connection_line)
             self.removeItem(node)
         else:
             pass
@@ -199,6 +213,7 @@ class PageRule(QWidget, UiPageRule):
             0: 'NodeRoot',
             1: 'NodeGlobalRange',
             2: 'NodeLocalRange',
+            3: 'NodeEquipment',
         }
 
         # set the layout of the entire page
@@ -209,6 +224,7 @@ class PageRule(QWidget, UiPageRule):
         self.pushbutton_add_node0.clicked.connect(lambda: self.add_node(0))
         self.pushbutton_add_node1.clicked.connect(lambda: self.add_node(1))
         self.pushbutton_add_node2.clicked.connect(lambda: self.add_node(2))
+        self.pushbutton_add_node3.clicked.connect(lambda: self.add_node(3))
 
 
     def add_node(self, node_index):
